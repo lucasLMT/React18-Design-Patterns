@@ -1905,3 +1905,845 @@ export default Notes;
 ```
 
 ## React Router
+
+### Installing and configuring React Router
+
+```Bash
+npm install react-router-dom @types/react-router-dom
+```
+
+If you are using React for the web, you should use react-router-dom, and if you are using React Native, you need to use react-router-native.
+
+### Creating our sections
+
+Here you can create some pages to be rendered in different routes.
+Ex: - src/components/Home.tsx - src/components/About.tsx - src/components/Contact.tsx - src/components/Error404.tsx
+
+In the **index/main.tsx** you will modify the file to import the **BrowserRouter** to define our AppRoutes, that is the next file to create.
+
+```Javascript
+// Dependencies
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter as Router } from 'react-router-dom'
+// Routes
+import AppRoutes from './routes'
+createRoot(document.getElementById('root') as HTMLElement).render(
+  <Router>
+    <AppRoutes />
+  </Router>
+)
+```
+
+In the **routes.tsx** file we will define our routes and elements that will be rendered.
+
+```Javascript
+// Dependencies
+import { Routes, Route } from 'react-router-dom'
+// Components
+import App from './App'
+import Home from './components/Home'
+
+const AppRoutes = () => (
+  <App>
+    <Routes>
+      <Route path="/" element={<Home />} />
+    </Routes>
+  </App>
+)
+
+export default AppRoutes
+```
+
+After that, we need to modify our App.tsx file to render the route components as children:
+
+```Javascript
+import './App.css'
+import { FC, ReactNode } from 'react'
+
+type Props = {
+  children: ReactNode
+}
+
+const App: FC<Props> = ({ children }) => <div className="App">{children}</div>
+
+export default App
+```
+
+### Adding parameters to the routes
+
+Defining the route and parameters.
+
+```Javascript
+const AppRoutes = () => (
+  <App>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/contacts" element={<Contacts />} />
+      <Route path="/contacts/:contactId" element={<Contacts />} />
+      <Route path="*" element={<Error404 />} />
+    </Routes>
+  </App>
+)
+```
+
+How to get the parameters:
+
+```Javascript
+const Contacts: FC<any> = () => {
+    const { contactId = 0 } = useParams()
+    ...
+}
+```
+
+### React Router v6.4
+
+We will now add our routes directly to our App.tsx file.
+
+```Javascript
+import { FC } from 'react'
+import {
+    createBrowserRouter,
+    createRoutesFromElements,
+    Route,
+    Link,
+    Outlet,
+    RouterProvider
+} from 'react-router-dom'
+import About from './components/About'
+import Home from './components/Home'
+import Pokemons, { dataLoader } from './components/Pokemons'
+import Error404 from './components/Error404'
+import './App.css'
+
+const App: FC<any> = () => {
+    const router = createBrowserRouter(
+        createRoutesFromElements(
+            <Route path="/" element={<Root />}>
+            <Route index element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="*" element={<Error404 />} />
+            </Route>
+        )
+    )
+
+    return (
+        <div className="App">
+            <RouterProvider router={router} />
+        </div>
+    )
+```
+
+The <Root /> component serves the purpose of housing our Navigation menu. Additionally, using the new <Outlet /> component, we can specify the location where we want to render the content of our routes.
+
+### React Loaders
+
+One of the main changes in React Router 6.4 is the addition of loaders. These loaders provide a better way to fetch data, eliminating the need for the common pattern of using useEffect and fetch within components.
+
+```Javascript
+export const dataLoader = async () => {
+  try {
+    const response = await fetch('https://pokeapi.co/api/v2/pokemon/')
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`)
+    }
+    const data = await response.json()
+    return data.results
+  } catch (error) {
+    console.error('Error fetching data:', error)
+  }
+}
+```
+
+Connect the loader with the proper route.
+
+```Javascript
+<Route path="/pokemons" element={<Pokemons />} loader={dataLoader} />
+```
+
+With react loader we can now manage more efficiently deal with fetche data from an API. Additionally, we will use the useNavigation hook to monitor the state of the route, enabling us to determine if the data is still loading.
+
+```Javascript
+const Pokemons = () => {
+  const pokemons = useLoaderData() as PokeData[]
+  const navigation = useNavigation()
+  if (navigation.state === 'loading') {
+    return <h1>Loading...</h1>
+  }
+  ...
+}
+```
+
+## React 18 New Features
+
+### Concurrent mode
+
+#### Time slicing:
+
+Time slicing is a technique that allows React to break up large chunks of work into smaller pieces and prioritize the most important tasks first.
+
+#### Suspense:
+
+Suspense is a new feature in React that allows developers to suspend the rendering of a component until the necessary data has been loaded.
+
+#### Concurrent rendering:
+
+Concurrent rendering is a new rendering mode in React that allows React to update the user interface more frequently, resulting in smoother animations and transitions.
+
+```Javascript
+import React, { useState } from 'react'
+function Counter() {
+    const [count, setCount] = useState(0)
+
+    function handleClick() {
+        setCount(count + 1)
+    }
+    return (
+        <button onClick={handleClick}>
+            {count}
+        </button>
+    )
+}
+function App() {
+    return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <Counter />
+        </React.Suspense>
+    )
+}
+ReactDOM.createRoot(document.getElementById('root'))
+```
+
+### Automatic batching
+
+In this example, we have a MyComponent component that uses the useState hook to manage a count state variable. When the user clicks the Increment button, we call the setCount function three times in rapid succession, each time incrementing the count by 1.
+
+In traditional React, each call to setCount would trigger a new render pass, resulting in three separate updates to the user interface. However, with automatic batching in React 18, these updates are automatically grouped together and processed in a single render pass.
+
+```Javascript
+function MyComponent() {
+    const [count, setCount] = useState(0)
+    function handleClick() {
+        setCount(count + 1)
+        setCount(count + 1)
+        setCount(count + 1)
+    }
+    return (
+        <div>
+            <p>Count: {count}</p>
+            <button onClick={handleClick}>Increment</button>
+        </div>
+    )
+}
+```
+
+### Transitions
+
+Inside the Transition component, we define a function that takes a state argument and returns the contents of the transitioned element. The state argument is a string that represents the current state of the transition, which can be one of entering, entered, exiting, or exited.
+
+In our example, we use the state argument to set the opacity of the div element based on the current state of the transition. When the state is entered, we set the opacity to 1 to make the element fully visible. When the state is exiting or exited, we set the opacity to 0 to make the element fade out smoothly.
+
+```Javascript
+import { useState } from 'react'
+import { Transition } from 'react-transition-group'
+function MyComponent() {
+    const [show, setShow] = useState(false)
+    function handleClick() {
+        setShow(!show)
+    }
+    return (
+        <div>
+            <button onClick={handleClick}>
+            {show ? 'Hide' : 'Show'}
+            </button>
+            <Transition in={show} timeout={300}>
+                {(state) => (
+                    <div
+                    style={{
+                    transition: 'opacity 300ms ease-out',
+                    opacity: state === 'entered' ? 1
+                    }}
+                    >
+                        {show && <p>Hello, world!</p>}
+                    </div>
+                )}
+            </Transition>
+        </div>
+    )
+}
+```
+
+### Suspense on the server
+
+The server can return a simple HTML response with fallback content, which can be quickly and easily rendered by the client.
+
+```Javascript
+import { Suspense } from 'react'
+import { fetchUserData } from './api'
+
+function MyComponent() {
+    const userData = fetchUserData();
+    return (
+        <div>
+            <p>Name: {userData.name}</p>
+            <Suspense fallback={<p>Loading...</p>}>
+                <UserProfile userId={userData.id} />
+            </Suspense>
+        </div>
+    )
+}
+```
+
+By wrapping the UserProfile component in a Suspense boundary, we can ensure that the fallback content is displayed until the additional data has been loaded.
+
+### New APIs
+
+#### createRoot
+
+With createRoot, you can create a root element that can be used to render multiple components, instead of specifying the root element for each component.
+
+```Javascript
+const App = () => {
+ return <div>Hello, world!</div>
+}
+const root = ReactDOM.createRoot(document.getElementById('root'))
+root.render(<App />)
+```
+
+#### hydrateRoot
+
+hydrateRoot is used for this process of hydrating the initial HTML sent by the server into a React component tree. It allows React to reuse the server-rendered markup so that the initial page load is faster and there’s less work for the client to do.
+
+```Javascript
+import React from 'react';
+import { createRoot, hydrateRoot } from 'react-dom/client';
+
+const App = () => {
+  return (
+    <div>
+      Hello, world!
+    </div>
+  );
+};
+
+const root = createRoot(document.getElementById('root'));
+
+// Check if the root element already has existing content (server-rendered)
+if (root.hasPendingChildren()) { // Use hasPendingChildren() instead of isMounted()
+  // If content exists, perform hydration
+  hydrateRoot(root, App);
+} else {
+  // If no content exists, perform initial render
+  root.render(App);
+}
+```
+
+#### renderToPipeableStream
+
+renderToPipeableStream is another new API introduced in React 18 that allows you to render a React component tree to a Node.js stream.
+
+```Javascript
+import React from 'react'
+import { renderToPipeableStream } from 'react-dom/client'
+import { createServer } from 'http'
+const App = () => {
+    return <div>Hello, world!</div>
+}
+const server = createServer((req, res) => {
+    const stream = renderToPipeableStream(<App />)
+    stream.pipe(res)
+})
+server.listen(3000)
+```
+
+When a request is made to the server, we use renderToPipeableStream to render the App component to a Node.js stream. We then pipe the stream to the response object using the pipe method.
+
+Overall, renderToPipeableStream is a useful API for SSR in Node.js environments and can help improve the performance and scalability of your server-rendered applications.
+
+### New Hooks
+
+#### useId
+
+useId generates a unique ID that is guaranteed to be different on each render. It takes an optional parameter that can be used to specify a prefix for the generated ID, which can be useful for naming elements in a consistent way.
+
+```Javascript
+import { useId } from 'react'
+const MyComponent = () => {
+    const id = useId('my-prefix')
+    return <div id={id}>Hello, world!</div>
+}
+```
+
+Although the useId hook in React 18 offers unique benefits, it’s essential to be aware of certain caveats to avoid potential issues. Firstly, it’s not recommended to use useId for generating keys in a list. The preferred approach is to derive keys directly from your data. Secondly, the useId Hook requires a perfect match between the component trees on the server and the client side during server rendering. Any discrepancies between the server and client-rendered trees could lead to inconsistent IDs.
+
+#### useTransition
+
+```Javascript
+import React, { useState, useTransition } from 'react';
+
+const MyComponent = () => {
+  const [data, setData] = useState(null);
+  const [startTransition, isPending] = useTransition();
+
+  const handleClick = async () => {
+    try {
+      const newData = await startTransition(() => fetchData()); // Use async/await with startTransition
+      setData(newData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // Handle errors gracefully (e.g., display an error message to the user)
+    }
+  };
+
+  return (
+    <div>
+        {isPending && <LoadingSpinner />}
+        <button onClick={handleClick}>Fetch Data</button>
+        {data && <DataDisplay data={data} />}
+    </div>
+  );
+};
+
+export default MyComponent;
+```
+
+#### useDeferredValue
+
+Is designed to improve the performance of your React applications by allowing you to defer the update of certain parts of your UI until a later point in time. This can be particularly beneficial when dealing with expensive calculations or updates that might not be critical for the initial rendering of the component.
+
+```Javascript
+import React, { useState, useDeferredValue } from 'react';
+
+const SlowList = () => {
+  const [items, setItems] = useState([]);
+
+  // Simulate expensive data fetching
+  const fetchData = () => {
+    const newItems = [];
+    for (let i = 0; i < 100; i++) {
+      newItems.push(`Item ${i + 1}`);
+      // Simulate some delay
+      if (i % 10 === 0) {
+        console.log('Simulating slow data fetching...');
+        // You could use a real promise for asynchronous data fetching
+        return new Promise((resolve) => setTimeout(() => resolve(), 100));
+      }
+    }
+    return newItems;
+  };
+
+  const handleClick = async () => {
+    const newItems = await fetchData();
+    setItems(newItems);
+  };
+
+  // Defer the value of the list for smoother rendering
+  const deferredItems = useDeferredValue(items);
+
+  return (
+    <div>
+      <button onClick={handleClick}>Fetch Data</button>
+      <ul>
+        {deferredItems.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default SlowList;
+```
+
+#### useInsertionEffect
+
+useInsertionEffect is a variation of the existing useEffect hook that allows you to perform actions after a DOM node has been inserted into the page.
+
+```Javascript
+import { useInsertionEffect } from 'react'
+function MyComponent() {
+    useInsertionEffect(() => {
+        const canvas = document.createElement('canvas')
+        canvas.width = 300
+        canvas.height = 200
+        canvas.style.backgroundColor = 'red'
+        document.body.appendChild(canvas)
+
+        return () => {
+            document.body.removeChild(canvas)
+        }
+    }, [])
+
+    return (
+        <div>
+            <h1>Hello, world!</h1>
+            <p>This is my React component.</p>
+        </div>
+    )
+}
+```
+
+### Strict mode
+
+```Javascript
+import React from 'react'
+
+function MyComponent() {
+    return (
+        <React.StrictMode>
+            <div>
+                <h1>Hello, world!</h1>
+                <p>This is my React component.</p>
+            </div>
+        </React.StrictMode>
+    )
+}
+```
+
+In this example, we wrap our component tree with the React.StrictMode component. This enables several additional checks and warnings during development, such as detecting unsafe lifecycle methods, identifying potential side effects, and highlighting potential performance issues.
+
+## Managing Data
+
+### Creating our first context
+
+For this, you can create a folder called contexts inside your src folder.
+
+```Javascript
+import { FC, createContext, useState, useEffect } from 'react'
+import axios from 'axios'
+
+export type Issue = {
+    number: number
+    title: string
+    url: string
+    state: string
+}
+interface Issue_Context {
+    issues: Issue[]
+    url: string
+}
+interface Props {
+    url: string
+}
+
+export const IssueContext = createContext<Issue_Context>
+
+const IssueProvider: FC<Props> = ({ children, url }) => {
+    // State
+    const [issues, setIssues] = useState<Issue[]>([])
+    const fetchIssues = useCallback(async () => {
+        const response = await axios(url)
+        if (response) {
+            setIssues(response.data)
+        }
+    }, [url])
+    // Effects
+    useEffect(() => {
+        fetchIssues()
+    }, [fetchIssues])
+
+    const context = {
+        issues,
+        url
+    }
+    return <IssueContext.Provider value={context}>{children}</IssueContext.Provider>
+}
+
+export default IssueProvider
+```
+
+#### Wrapping our components with the provider
+
+```Javascript
+// Providers
+import IssueProvider from '../contexts/Issue'
+// Components
+import Issues from './Issues'
+const App = () => {
+    return (
+        <IssueProvider url="https://api.github.com/">
+            <Issues />
+        </IssueProvider>
+    )
+}
+export default App;
+```
+
+If you forget to wrap your components with the provider, you won’t be able to access your context within them.
+
+#### Consuming context with useContext
+
+```Javascript
+import { FC, useContext } from 'react'
+// Contexts
+import { IssueContext, Issue } from '../contexts/Issue'
+const Issues: FC = () => {
+    const { issues, url } = useContext(IssueContext)
+    return (
+        <>
+            <h1>ContentPI Issues from Context</h1>
+            {issues.map((issue: Issue) => (
+                <p key={`issue-${issue.number}`}>
+                <strong>#{issue.number}</strong> {' '}
+                <a href={`${url}/${issue.number}`}>{issue.title}</a>
+                {issue.state}
+                </p>
+            ))}
+        </>
+    )
+}
+export default Issues
+```
+
+### Introducing React Suspense with SWR
+
+SWR is a strategy to first return the data from cache (stale), then send the fetch request (revalidate), and finally, return with up-to-date data.
+
+The first thing you need to do is to install some packages:
+
+```Bash
+npm install swr react-loading-skeleton styled-components
+```
+
+1 - Serve Stale Data (When Available): When a component requests data, SWR first checks its local cache. If cached data exists and is still valid (within a certain time window), it serves the cached data immediately.
+
+2 - Revalidate in the Background: Even if stale data is served, SWR automatically sends a background request to the server to fetch fresh data. Which is good to real time applications.
+
+3 - Update UI with Fresh Data (When Received): Once the background request completes and the server sends fresh data, SWR updates the local cache and the UI of your components to reflect the new data
+
+```Javascript
+import React, {Suspense} from 'react';
+import { useSWR } from 'swr';
+
+const Profile = () => {
+  // Replace with your actual API endpoint
+  const url = 'https://api.example.com/profile';
+
+  // Use SWR to fetch and manage profile data
+  const { data, error } = useSWR(url, async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Failed to fetch profile data');
+    }
+    return await response.json();
+  });
+
+  if (error) {
+    return <div>Error fetching profile data: {error.message}</div>;
+  }
+
+  const LoadingFallback = () => <p>Loading data...</p>;
+
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <div>
+        <h1>Welcome, {data.name}!</h1>
+        <p>Email: {data.email}</p>
+      </div>
+    </Suspense>
+  );
+
+//   Another option without using Suspense
+//   return (
+//         { data ? (
+//             <div>
+//                 <h1>Welcome, {data.name}!</h1>
+//                 <p>Email: {data.email}</p>
+//             </div>) :
+//             LoadingFallBack()
+//         }
+//   )
+};
+
+export default Profile;
+```
+
+Idea of directory organization: Create inside folder components, a folder to your new feature, inside you will have the following files. **Container.tsx**, **fetcher.tsx** and the main component of the feature.
+
+### Reduz Toolkit: a modern approach to Redux
+
+#### Install reduz
+
+```Bash
+npm install redux @reduxjs/toolkit react-redux
+```
+
+#### Creating a store
+
+To create a store, we’ll use the configureStore function provided by Redux Toolkit (store.ts):
+
+```Javascript
+import { configureStore } from '@reduxjs/toolkit'
+import rootReducer from './rootReducer'
+
+const store = configureStore({
+    reducer: rootReducer
+})
+
+export type RootState = ReturnType<typeof rootReducer>
+export default store
+```
+
+#### Creating a slice
+
+A slice represents a portion of the Redux store that corresponds to a specific feature or domain. To create a slice, use the createSlice function (createSlice.ts):
+
+```Javascript
+import { createSlice } from '@reduxjs/toolkit'
+
+const counterSlice = createSlice({
+    name: 'counter',
+    initialState: 0,
+    reducers: {
+        increment: (state) => state + 1,
+        decrement: (state) => state – 1
+    }
+})
+
+export const { increment, decrement } = counterSlice.actions
+export default counterSlice.reducer
+```
+
+#### Combining reducers
+
+If you have multiple slices, you can use the combineReducers function from Redux Toolkit to create a root reducer (rootReducer.ts):
+
+```Javascript
+import { combineReducers } from '@reduxjs/toolkit'
+import counterReducer from './counterSlice'
+
+const rootReducer = combineReducers({
+    counter: counterReducer
+})
+
+export default rootReducer
+```
+
+#### Connecting components to the store
+
+To connect a React component to the Redux store, use the useSelector and useDispatch Hooks from the react-redux package (Counter.ts):
+
+```Javascript
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { increment, decrement } from './counter'; // Assuming './counter' exports these actions
+
+function Counter() {
+  const count = useSelector((state: RootState) => state.counter.value); // Access counter value from slice
+  const dispatch = useDispatch();
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => dispatch(increment())}>Increment</button>
+      <button onClick={() => dispatch(decrement())}>Decrement</button>
+    </div>
+  );
+}
+
+export default Counter;
+```
+
+#### Integrating the store with a React application
+
+Finally, wrap your React application with the Provider component from react-redux and pass your store as a prop:
+
+```Javascript
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { Provider } from 'react-redux';
+import store from './store';
+import Counter from './Counter';
+
+const root = createRoot(document.getElementById('root') as HTMLElement);
+
+// Define an interface for the state managed by the Redux store (assuming you have one)
+interface AppState {
+  // Add properties for your state here
+}
+
+root.render(
+  <Provider store={store as Redux.Store<AppState>}>
+    <Counter />
+  </Provider>
+);
+```
+
+## Server Side Rendering
+
+### Understanding universal applications
+
+Writing an isomorphic/universal application means building an application that looks the same on the server and the client. The fact that the same language is used to write the two applications means that a big part of the logic can be shared, which opens many possibilities.
+
+### Reasons for implementing SSR
+
+You have understand that SSR adds a complexity to maintain code, test the application and manage states, as well as increase the load on the server. Furthermore, if your application does not have a significant amount of public content, the SEO benefits that often drive the adoption of SSR may not be substantial.
+
+### Implementing SEO
+
+One of the main reasons why we may want to render our applications on the server side is SEO. If we serve an empty HTML skeleton to the crawlers of the main search engines, they are not able to extract any meaningful information from it. Nowadays, Google seems to be able to run JavaScript, but there are some limitations, and SEO is often a critical aspect of our businesses.
+
+### A common code base
+
+Utilizing JavaScript on both the client and server sides of an application offers numerous benefits. Firstly, it simplifies matters by employing the same language across all components. This streamlines the process of maintaining a well-functioning system and facilitates knowledge sharing among colleagues within the company.
+
+### Better performance
+
+Last but not least, we all love client-side applications because they are fast and responsive, but there is a problem—the bundle has to be loaded and run before users can take any action on the application.
+
+### Don’t underestimate the complexity of SSR
+
+SSR can incur additional costs, extending development time and adding complexity. It also increases the server load, potentially necessitating costlier infrastructure. Operationally, SSR requires a well-maintained server with a complete setup, leading to increased operational costs. Additionally, testing may become more time-consuming due to the heightened complexity.
+
+It is crucial to strike a balance between these costs and the potential benefits of SSR, such as improved SEO and faster initial page loads.
+
+It is essential to enable SSR only when genuinely required. For instance, if improving your website’s visibility in search engines (SEO) is a priority, or that your application takes a lot of time to load fully and you have already done all the optimization.
+
+### Creating a basic example of SSR
+
+#### Configuring our project from scratch with webpack
+
+Let’s start by creating a new project folder (you can call it ssr-project) and running the following command to create a new package:
+
+```Bash
+npm init && npm install webpack
+```
+
+Install ts-loader and the presets that we need to write an ES6 application using React and TSX:
+
+```Bash
+npm install --save-dev ts-loader @types/react @types/react-dom typescript
+```
+
+```Bash
+npm, install --save-dev  @babel/core @babel/preset-env @babel/preset-react
+```
+
+Tools like webpack-node-externals assist in defining these dependencies as externals in the webpack configuration, defining a set of externals, which are dependencies that we do not want to include in the bundle.
+
+```Bash
+npm install --save-dev webpack-node-externals
+```
+
+It is now time to create an entry in the npm scripts section of **package.json** so that we can easily run the build command.
+
+```Javascript
+"scripts": {
+ "build": "webpack"
+}
+```
+
+Next, you need to create a **.babelrc** file in your root path:
+
+```Javascript
+{
+ "presets": ["@babel/preset-env", "@babel/preset-react"]
+}
+```
+
+We now have to create the configuration file, called webpack.config.js, to tell webpack how we want our files to be bundled.
+
+```Javascript
+
+```
